@@ -44,6 +44,7 @@ void MotorIn();
 void AutoMode();
 void ManuMode();
 void SayDo();
+void ThoiTiet();
 bool CheckRaining();
 bool CheckSunrise();
 
@@ -75,17 +76,23 @@ void setup()
 void loop()
 {
   Blynk.run();
+  
   // You can inject your own code or combine it with other sketches.
   // Check other examples on how to communicate with Blynk. Remember
   // to avoid delay() function!
   if (menu_state == 0)
   {
     ManuMode();
+    
+    
   }
   else if (menu_state == 1)
   {
     AutoMode();
+   
+    
   }
+  ThoiTiet();
 }
 
 bool CheckRaining()
@@ -134,6 +141,7 @@ void AutoMode()
     MotorIn();
     Blynk.virtualWrite(V6, LOW);
   }
+  SayDo();
 }
 
 void ManuMode()
@@ -142,45 +150,54 @@ void ManuMode()
   Blynk.virtualWrite(V4, LOW);
   if (stt_noiPhoi == 1 )
   {
-    if (CheckOutDoor() == false)
+    if (CheckOutDoor() == true)
     {
-       MotorOut();
-    }else
       Blynk.virtualWrite(V6, HIGH);
+    }
+      
+       MotorOut();
   }
   else if (stt_noiPhoi == 0 )
   {
     if (CheckInDoor()== false)
     {
-      MotorIn();
-    }else
-    Blynk.virtualWrite(V6, LOW);
+      Blynk.virtualWrite(V6, LOW);
+    }
+    MotorIn();
   }
+  SayDo();
 }
 
 void SayDo()
 {
-  if (menu_state == 0 && stt_sayDo == 1 && CheckInDoor()) // che do thu cong
+  if (stt_sayDo == 1 && CheckInDoor()) // che do thu cong
   {
     digitalWrite(RELAY_PIN, HIGH); // bat
   }
-  else if (menu_state == 0 && stt_sayDo == 0 && CheckInDoor())
+  else if (stt_sayDo == 0 || CheckInDoor() == false)
   {
     digitalWrite(RELAY_PIN, LOW);
   }
-  else if (menu_state == 1 && stt_sayDo == 1) // auto mode
-  {
-    if (CheckInDoor()) // tu dong
-    {
-      digitalWrite(RELAY_PIN, HIGH);
-    }
-    else
-      digitalWrite(RELAY_PIN, LOW);
-  }
-  else if (menu_state == 1 && stt_sayDo == 0)
-  {
-    digitalWrite(RELAY_PIN, LOW); // tawts
-  }
+}
+
+void ThoiTiet(){
+   unsigned long long preTimer1;
+   unsigned long long currTimer1 = millis();
+
+   if (currTimer1 - preTimer1 >= 1000){
+    int hum = dht.readHumidity();
+    int temp = dht.readTemperature();
+    Blynk.virtualWrite(V7, temp);
+    Blynk.virtualWrite(V8, hum);
+    preTimer1 = currTimer1;
+   }  
+   if (CheckRaining())
+   {
+    Blynk.virtualWrite(V9, HIGH);
+   }else Blynk.virtualWrite(V9, LOW);
+   
+
+    
 }
 
 void MotorIn()
@@ -190,13 +207,12 @@ void MotorIn()
 
   if (CheckInDoor() == true)
   {
-    ledcWrite(ledChannel1, 0);
+    ledcWrite(ledChannel1,100);
     Serial.println(digitalRead(IR1_PIN));
-    return;
   }
   else
   {
-    ledcWrite(ledChannel1, 512);
+    ledcWrite(ledChannel1,700);
     Serial.println("Dang chay vao");
   }
 }
@@ -207,13 +223,13 @@ void MotorOut()
   digitalWrite(IN2_L298_PIN, HIGH);
   if (CheckOutDoor() == true)
   {
-    ledcWrite(ledChannel1, 0);
+    ledcWrite(ledChannel1,100);
     Serial.println(digitalRead(IR2_PIN));
-    return;
+    
   }
   else
   {
-    ledcWrite(ledChannel1, 512);
+    ledcWrite(ledChannel1, 700);
     Serial.println("Dang chay ra");
   }
 }
